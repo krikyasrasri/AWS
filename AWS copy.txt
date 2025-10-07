@@ -1,0 +1,27 @@
+1 ) we have to enable the entry in aws 
+
+From local server to AWS dumps transfer":
+
+export PATH=~/.local/bin:$PATH
+
+We need to generate keys first
+
+export http_proxy=http://qy1prdproxy01.ie.intuit.net:80/
+export https_proxy=http://qy1prdproxy01.ie.intuit.net:80/
+export no_proxy='.intuit.net, .intuit.com, 10.*.*.*, localhost, 127.0.0.1'
+export AWS_ACCESS_KEY_ID=ASIAZZUKLL3DQR6JWUY3
+export AWS_SECRET_ACCESS_KEY=bUGor7w3rHuKertKIEJIeIjbdX1pWBGTQIHW5Ec1
+export AWS_SECURITY_TOKEN=FQoGZXIvYXdzECIaDB2ORXwXorSlZyFV9CKSAubN8uP41cfQrEuy3IWorj8N6q3d+nDrEDu7p3MsDPef9DfCPxITSkarZa4uSXBv0o266D3erLSeXa6228OmW9s9PVRtIOqVVXKirVieJb/Df7gDddf6Gl7BIbXU4CG+NbtbqmEVcI3X6cTLUcpDuRL8beAEMLIBzaMas/sUd0oXo6DRutmSapVc7PmX6zOTKZJr33gO+QYmSiQ/Q0ujioMaPscBQZ0XCYeRkGKwe/lzmPC5aqohC+O/W5LHT2qc65D506aiwPniKMhxW41br42FHarw7krP+062lI3JwHFdh4lRqxlMCilzWaY6iAAzWtzoG22QWFb2j0lKkX0XhEHBXF1z3dnp0UGDNl106h3doUQoxaXX6AU=
+
+export PATH=~/.local/bin:$PATH
+
+
+
+aws s3 cp expdp s3://ebpi-db-dumps/ --recursive
+
+
+aws s3 sync . s3://ebpi-db-dumps/
+
+
+
+arn:aws:s3:::ebpi-db-dumps
