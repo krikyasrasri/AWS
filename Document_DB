@@ -1,0 +1,258 @@
+Step 1: Enable Change Streams
+
+
+db.adminCommand({modifyChangeStreams: 1,
+    database: "subscriptionsignupdocument-prd",
+    collection: "", 
+    enable: true});
+
+
+
+— List all databases and collections with change streams enabled
+cursor = new DBCommandCursor(db,
+	db.runCommand(
+	{aggregate: 1,
+	pipeline: [{$listChangeStreams: 1}], 
+	cursor:{}}));
+
+
+Step2: Migrating Indexes:
+
+git clone https://github.com/awslabs/amazon-documentdb-tools.git
+ 
+cd amazon-documentdb-tools/index-tool
+ 
+python3 -m pip install -r requirements.txt
+ 
+cd migrationtools/
+
+//Download the pem file
+wget https://truststore.pki.rds.amazonaws.com/us-west-2/us-west-2-bundle.pem
+ 
+//Create a folder to store the indexes
+mkdir docdb_index_export_09Aug23
+
+ 
+/root/mongosh-2.0.2-linux-x64/bin/mongosh --tls --host webs-signup-docdb-prod.cluster-coikxjw4nunu.us-west-2.docdb.amazonaws.com:27017 --tlsCAFile global-bundle.pem --username subscriptionsignupdocument --password 9ZLfGGHT7C7mrhr87d4j5ffSyDRXVyny8MxGuCTVWN4KFA58k9Hn5cJJtZWK267z
+ 
+/root/mongosh-2.0.2-linux-x64/bin/mongosh --tls --host webs-subscription-signup.cluster-coikxjw4nunu.us-west-2.docdb.amazonaws.com:27017 --tlsCAFile global-bundle.pem --username subscriptionsignupdocument --password Intuit_123
+   
+   webs-subscription-signup
+ 
+//Replace the username,password and the endpoint of the 3.6 cluster
+
+— export the indexes
+
+python3 documentdb_index_tool.py --dump-indexes --dir docdb_index_export_31Oct23 --uri 'mongodb://subscriptionsignupdocument:A74D91D9DD3C74FAF24E839E5132EE50BC329B9DE2AC3B1A4846A7B12402ADC7@webs-subscription-signup-db-src.cluster-c6f3h163ix2r.us-west-2.docdb.amazonaws.com:27017/?tls=true&tlsCAFile=us-west-2-bundle.pem&replicaSet=rs0&retryWrites=false'
+
+
+python3 documentdb_index_tool.py --dump-indexes --dir docdb_index_export_31Oct23  --uri 'mongodb://subscriptionsignupdocument:9ZLfGGHT7C7mrhr87d4j5ffSyDRXVyny8MxGuCTVWN4KFA58k9Hn5cJJtZWK267z@webs-signup-docdb-prod3.coikxjw4nunu.us-west-2.docdb.amazonaws.com:27017/?tls=true&tlsCAFile=global-bundle.pem&retryWrites=false'
+
+
+— Import the indexes (Cd /tmp/amazon-documentdb-tools/index-tool/migrationtools)
+python3 documentdb_index_tool.py --restore-indexes --skip-incompatible --dir docdb_index_export_09Aug23 --uri 'mongodb://subscriptionsignupdocument:A74D91D9DD3C74FAF24E839E5132EE50BC329B9DE2AC3B1A4846A7B12402ADC7@webs-subscription-signup-db-tgt.cluster-c6f3h163ix2r.us-west-2.docdb.amazonaws.com:27017/?tls=true&tlsCAFile=us-west-2-bundle.pem&replicaSet=rs0&retryWrites=false'
+ 
+ python3 documentdb_index_tool.py --restore-indexes --skip-incompatible --dir docdb_index_export_31Oct23 --uri 'mongodb://subscriptionsignupdocument:Intuit_123@webs-subscription-signup.cluster-coikxjw4nunu.us-west-2.docdb.amazonaws.com:27017/?tls=true&tlsCAFile=global-bundle.pem&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false'
+
+— Count of the documents in the collection ( QAL)
+
+use subscriptionsignupdocument-qal
+db.subscriptionSignupDocument.aggregate( [
+   { $count: "myCount" }
+])
+
+— source
+rs0 [primary] subscriptionsignupdocument-qal> db.subscriptionSignupDocument.aggregate( [
+...    { $count: "myCount" }
+... ])
+[ { myCount: 2713057 } ]
+
+— Target
+rs0 [primary] subscriptionsignupdocument-qal> db.subscriptionSignupDocument.aggregate( [
+...    { $count: "myCount" }
+... ])
+[ { myCount: 2713057 } ]
+
+
+— Count of the documents in the collection ( PRF)
+
+use subscriptionsignupdocument-prf
+db.subscriptionSignupDocument.aggregate( [
+   { $count: "myCount" }
+])
+
+— source
+rs0 [primary] subscriptionsignupdocument-prf> db.subscriptionSignupDocument.aggregate( [
+...    { $count: "myCount" }
+... ])
+[ { myCount: 44436652 } ]
+
+— Target
+rs0 [primary] subscriptionsignupdocument-qal> db.subscriptionSignupDocument.aggregate( [
+...    { $count: "myCount" }
+... ])
+[ { myCount: 2713057 } ]
+
+
+———————————————————Steps for pro cluster—————————
+
+db.adminCommand({modifyChangeStreams: 1,
+    database: "subscriptionsignupdocument-prf",
+    collection: "", 
+    enable: true});
+
+
+Use subscriptionsignupdocument-prf
+
+rs0:PRIMARY> use subscriptionsignupdocument-prf
+switched to db subscriptionsignupdocument-prf
+rs0:PRIMARY> 
+rs0:PRIMARY> 
+rs0:PRIMARY> 
+rs0:PRIMARY> db.signupRequestDocument.aggregate( [
+... ...    { $count: "myCount" }
+... ... ])
+{ "myCount" : 0 }
+rs0:PRIMARY> 
+rs0:PRIMARY> db.subscriptionSignupDocument.aggregate( [
+...    { $count: "myCount" }
+... ])
+
+{ "myCount" : 44,436,652 }
+
+
+— Count in source & target
+
+rs0 [primary] subscriptionsignupdocument-prf> db.subscriptionSignupDocument.aggregate( [
+...    { $count: "myCount" }
+... ])
+[ { myCount: 44,436,652 } ]
+rs0 [primary] subscriptionsignupdocument-prf> 
+
+
+------------------------------------------------
+
+Idexes info 
+
+
+Source indexes:
+
+---------rs0 [direct: primary] subscriptionsignupdocument-prd> db.subscriptionSignupDocument.getIndexes()
+[
+  {
+    v: 2,
+    key: { _id: 1 },
+    name: '_id_',
+    ns: 'subscriptionsignupdocument-prd.subscriptionSignupDocument'
+  },
+  {
+    v: 2,
+    unique: true,
+    key: { websRequestID: 1 },
+    name: 'websRequestID',
+    ns: 'subscriptionsignupdocument-prd.subscriptionSignupDocument',
+    expireAfterSeconds: 15552000
+  },
+  {
+    v: 2,
+    unique: true,
+    key: { 'signupRequests.websCorrelationID': 1 },
+    name: 'signupRequests.websCorrelationID',
+    ns: 'subscriptionsignupdocument-prd.subscriptionSignupDocument'
+  }
+]
+
+rs0 [direct: primary] subscriptionsignupdocument-prd> db.signupRequestDocument.getIndexes()
+[
+  {
+    v: 2,
+    key: { _id: 1 },
+    name: '_id_',
+    ns: 'subscriptionsignupdocument-prd.signupRequestDocument'
+  },
+  {
+    v: 2,
+    unique: true,
+    key: { websCorrelationID: 1 },
+    name: 'websCorrelationID',
+    ns: 'subscriptionsignupdocument-prd.signupRequestDocument'
+  }
+]
+rs0 [direct: primary] subscriptionsignupdocument-prd>\
+
+
+Target Index info :
+------------------
+
+use subscriptionsignupdocument-prd
+db.subscriptionSignupDocument.getIndexes()
+[
+  {
+    v: 4,
+    key: { _id: 1 },
+    name: '_id_',
+    ns: 'subscriptionsignupdocument-prd.subscriptionSignupDocument'
+  },
+  {
+    v: 4,
+    unique: true,
+    key: { websRequestID: 1 },
+    name: 'websRequestID',
+    ns: 'subscriptionsignupdocument-prd.subscriptionSignupDocument',
+    expireAfterSeconds: 15552000
+  },
+  {
+    v: 4,
+    unique: true,
+    key: { 'signupRequests.websCorrelationID': 1 },
+    name: 'signupRequests.websCorrelationID',
+    ns: 'subscriptionsignupdocument-prd.subscriptionSignupDocument'
+  }
+]
+
+
+s0 [direct: primary] subscriptionsignupdocument-prd> db.signupRequestDocument.getIndexes()
+[
+  {
+    v: 4,
+    key: { _id: 1 },
+    name: '_id_',
+    ns: 'subscriptionsignupdocument-prd.signupRequestDocument'
+  },
+  {
+    v: 4,
+    unique: true,
+    key: { websCorrelationID: 1 },
+    name: 'websCorrelationID',
+    ns: 'subscriptionsignupdocument-prd.signupRequestDocument'
+  }
+]
+
+
+Count of Dicuments in prod:
+--------------------------
+
+Source: 
+
+use subscriptionsignupdocument-prd
+
+rs0 [direct: primary] subscriptionsignupdocument-prd> db.subscriptionSignupDocument.aggregate( [
+... { $count: "myCount" }
+... ])
+[ { myCount: 16482620 } ]
+
+-- 
+Target :
+
+rs0 [direct: primary] subscriptionsignupdocument-prd> db.subscriptionSignupDocument.aggregate( [
+... { $count: "myCount" }
+... ])
+[ { myCount: 16475550 } ]
+
+
+
+
+
+
+
+
