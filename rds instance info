@@ -1,0 +1,1 @@
+aws rds describe-db-instances --query 'DBInstances[?contains(Engine, `oracle`)].{ID:DBInstanceIdentifier,Engine:Engine,Version:EngineVersion,Storage:AllocatedStorage,Status:DBInstanceStatus,Region:AvailabilityZone}' --output table 2>&1 | head -50
