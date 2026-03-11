@@ -1,0 +1,44 @@
+#!/bin/bash
+
+GROUP="rvsprf-new-parameter-group"
+REGION="us-west-2"
+OUTFILE="params.html"
+
+# Fetch JSON
+aws rds describe-db-parameters \
+  --db-parameter-group-name "$GROUP" \
+  --region "$REGION" \
+  --output json > params.json
+
+# Build HTML
+{
+echo "<html>"
+echo "<head>"
+echo "<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+th { background-color: #f2f2f2; font-weight: bold; }
+tr:nth-child(even) { background-color: #fafafa; }
+h2 { font-family: Arial; }
+</style>"
+echo "</head>"
+echo "<body>"
+echo "<h2>AWS RDS Parameter Group: $GROUP</h2>"
+echo "<table>"
+echo "<tr><th>Parameter Name</th><th>Value</th><th>Apply Type</th><th>Data Type</th><th>Description</th></tr>"
+
+jq -r '.Parameters[] | [
+    .ParameterName,
+    (.ParameterValue // "NULL"),
+    .ApplyType,
+    .DataType,
+    (.Description | gsub("\n"; " "))
+] | @html "<tr><td>\(.[0])</td><td>\(.[1])</td><td>\(.[2])</td><td>\(.[3])</td><td>\(.[4])</td></tr>"' params.json
+
+echo "</table>"
+echo "</body>"
+echo "</html>"
+} > "$OUTFILE"
+
+echo "HTML report generated: $OUTFILE"
