@@ -20,10 +20,10 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/services/XXXXXXXXX/XXXXXXXXX/XXXXXXXX
 EMAIL_TO="t4imsedbteam-aaaaejwuunjjishtdjdsdjoikm@intuit.org.slack.com"
 EMAIL_FROM="srinivas_pothu@intuit.com"
 EMAIL_SUBJECT="PROD DB DataGurad and GoldenGate Health Check Report - $(date '+%Y-%m-%d %H:%M:%S')"
-SMTP_HOST="wnp2.intuit.com"
+SMTP_HOST="smtp.com"
 SMTP_PORT="587"
-SMTP_USER="wnp2-rst"
-SMTP_PASS="axo92rRRp*"
+SMTP_USER="wnp2"
+SMTP_PASS="test"
 
 # ── ANSI colors (terminal only) ──────────────────────────────
 GREEN='\033[0;32m'
